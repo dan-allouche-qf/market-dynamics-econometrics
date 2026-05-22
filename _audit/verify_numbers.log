@@ -1,0 +1,92 @@
+=== SANITY ===
+n_obs: 1044 
+start: 2005-01-01  end: 2024-12-28 
+n_NA total: 0 
+obs SP500: 1044   VIX: 1044   US10Y: 1044 
+
+SP500 min: 683.38  (date: 2009-02-28 )
+VIX max: 79.13  (date: 2008-10-18 )
+US10Y min: 0.536   US10Y max: 5.228 
+
+=== ADF SP500 ===
+M3 ADF tstat (claim -0.856) -> -0.856  | trend b tstat (claim 1.727) -> 1.727 
+M2 ADF tstat (claim 1.749) -> 1.749  | const c tstat (claim 0.293) -> -0.293 
+M1 ADF tstat (claim 3.131) -> 3.131 
+
+=== ADF VIX ===
+M3 ADF tstat (claim -5.715) -> -5.715 
+
+=== ADF US10Y ===
+M3 ADF tstat (claim -1.453) -> -1.453  | trend b tstat (claim 0.545) -> 0.545 
+M2 ADF tstat (claim -1.831) -> -1.831  | const c tstat (claim 1.734) -> 1.734 
+M1 ADF tstat (claim -0.592) -> -0.592 
+
+=== KPSS ===
+KPSS SP500 (claim 4.235) -> 4.235 
+KPSS VIX (claim 0.244) -> 0.244 
+KPSS US10Y (claim 1.454) -> 1.454 
+
+=== ARMA(1,0) ===
+phi1 (claim -0.0734) -> -0.0734 
+mu   (claim 0.0015)  -> 0.0015 
+p(ar1) (claim 0.0174) -> 0.0174 
+p(mu)  (claim 0.0289) -> 0.0289 
+AIC (claim -4778.19) -> -4778.19 
+BIC (claim -4763.34) -> -4763.34 
+sigma2 (claim 0.0005974) -> 0.0005974 
+AR root modulus (claim 13.62) -> 13.62 
+
+ARMA(0,3) AIC (claim -4779.91) -> -4779.91 
+
+=== Forecasts (log-returns) ===
+h=1 (claim 0.002443) -> 0.002443 
+h=2 (claim 0.001474) -> 0.001474 
+h=3 (claim 0.001545) -> 0.001545 
+last observed return (claim -0.01076) -> -0.01076 
+last observed SP500 (claim 5906.94) -> 5906.94 
+forecast level h=1 (claim 5921.39) -> 5921.39 
+forecast level h=2 (claim 5930.12) -> 5930.12 
+forecast level h=3 (claim 5939.29) -> 5939.29 
+
+VAR data nrow (claim ~1042): 1042 
+VARselect SC (claim 1): 1 
+VARselect AIC (claim 4): 4 
+VARselect HQ (claim 2): 2 
+VARselect FPE (claim 4): 4 
+
+=== VAR(1) SP500_ret eq ===
+               Estimate Std. Error   t value Pr(>|t|)
+SP500_ret.l1  -0.073353   0.031057 -2.361870 0.018367
+VIX.l1         0.000047   0.000087  0.539196 0.589867
+US10Y_diff.l1  0.001568   0.006384  0.245680 0.805979
+const          0.000778   0.001821  0.427594 0.669036
+R2 (claim 0.0057): 0.0057 
+=== VAR(1) VIX eq ===
+               Estimate Std. Error  t value Pr(>|t|)
+SP500_ret.l1  -108.0716     2.5611 -42.1981   0.0000
+VIX.l1           0.9328     0.0072 129.7653   0.0000
+US10Y_diff.l1    0.6847     0.5265   1.3005   0.1937
+const            1.4459     0.1501   9.6305   0.0000
+R2 (claim 0.947): 0.9473 
+=== VAR(1) US10Y_diff eq ===
+               Estimate Std. Error   t value Pr(>|t|)
+SP500_ret.l1   1.144926   0.148118  7.729810 0.000000
+VIX.l1        -0.000609   0.000416 -1.464367 0.143397
+US10Y_diff.l1 -0.053429   0.030448 -1.754769 0.079594
+const          0.010177   0.008683  1.172032 0.241453
+R2 (claim 0.060): 0.0602 
+VAR roots (claim 0.928, 0.102, 0.019): 0.927 0.102 0.019 
+
+Resid cor SP500-VIX (claim -0.059): -0.059  SP500-Yield (claim -0.061): -0.061  VIX-Yield (claim -0.124): -0.124 
+
+=== Granger ===
+SP500_ret -> others : F = 893.556 , p = 0 
+VIX -> others : F = 1.173 , p = 0.3094 
+US10Y_diff -> others : F = 0.898 , p = 0.4076 
+
+Johansen K (claim 4): 4 
+trace r=0 (claim 61.14): 61.14 
+trace r<=1 (claim 9.12): 9.12 
+trace r<=2 (claim 2.00): 2 
+Beta normalized (SP500=1): VIX (claim -410.59) -> NA , US10Y (claim -327.12) -> NA 
+alpha SP500 (claim 4.47e-4): 0.000447  VIX (claim 1.17e-4): 0.000117  US10Y (claim 1.43e-6): 1.43e-06 
