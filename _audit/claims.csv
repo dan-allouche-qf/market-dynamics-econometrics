@@ -1,0 +1,69 @@
+id,section_rapport,page_ou_ligne,chiffre_cite,type,fichier_source_attendu,valeur_recalculee,match,tolerance,note,verifie_2x
+01,Data Characteristics,Rmd L79,1044,n_obs,Rmd data_import chunk,1044,Y,exact,sample size,Y
+02,Descriptive plots,Rmd L217,683,SP500_min,Rmd y_sp,683.38,Y,±0.5,2009-02-28,Y
+03,Descriptive plots,Rmd L219,~80,VIX_max,Rmd y_vix,79.13,Y,±0.5,2008-10-18,Y
+04,ADF SP500 M3,Rmd L353,-0.856,tstat,ur.df(y_sp trend lags=6 AIC),-0.856,Y,exact,3 decimals,Y
+05,ADF SP500 M3 trend,Rmd L353,1.727,tstat_b,ur.df(y_sp trend),1.727,Y,exact,abs value,Y
+06,ADF SP500 M2,Rmd L363,1.749,tstat,ur.df(y_sp drift),1.749,Y,exact,3 decimals,Y
+07,ADF SP500 M2 const,Rmd L363,0.293,abs_tstat_c,ur.df(y_sp drift),0.293,Y,exact,abs value (signed -0.293),Y
+08,ADF SP500 M1,Rmd L373,3.131,tstat,ur.df(y_sp none),3.131,Y,exact,3 decimals,Y
+09,KPSS SP500,Rmd L383,4.235,LM_obs,ur.kpss(y_sp mu long),4.235,Y,exact,3 decimals,Y
+10,ADF VIX M3,Rmd L401,-5.715,tstat,ur.df(y_vix trend),-5.715,Y,exact,3 decimals,Y
+11,KPSS VIX,Rmd L411,0.244,LM_obs,ur.kpss(y_vix mu long),0.244,Y,exact,3 decimals,Y
+12,ADF US10Y M3,Rmd L429,-1.453,tstat,ur.df(y_us trend),-1.453,Y,exact,3 decimals,Y
+13,ADF US10Y M3 trend,Rmd L429,0.545,tstat_b,ur.df(y_us trend),0.545,Y,exact,abs value,Y
+14,ADF US10Y M2,Rmd L439,-1.831,tstat,ur.df(y_us drift),-1.831,Y,exact,3 decimals,Y
+15,ADF US10Y M2 const,Rmd L439,1.734,abs_tstat_c,ur.df(y_us drift),1.734,Y,exact,abs value,Y
+16,ADF US10Y M1,Rmd L449,-0.592,tstat,ur.df(y_us none),-0.592,Y,exact,3 decimals,Y
+17,KPSS US10Y,Rmd L459,1.454,LM_obs,ur.kpss(y_us mu long),1.454,Y,exact,3 decimals,Y
+18,ARMA(1,0) phi1,Rmd L672,-0.0734,coef,Arima(returns 1 0 0),-0.0734,Y,exact,4 decimals,Y
+19,ARMA(1,0) mu,Rmd L672,0.0015,intercept,Arima(returns 1 0 0),0.0015,Y,exact,4 decimals,Y
+20,ARMA(1,0) p_phi,Rmd L672,0.0174,pvalue,custom z-test,0.0174,Y,exact,4 decimals,Y
+21,ARMA(1,0) p_mu,Rmd L672,0.0289,pvalue,custom z-test,0.0289,Y,exact,4 decimals,Y
+22,ARMA(1,0) AIC,Rmd L624,-4778.19,AIC,AIC(arma_final),-4778.19,Y,exact,2 decimals,Y
+23,ARMA(1,0) BIC,Rmd L625,-4763.34,BIC,BIC(arma_final),-4763.34,Y,exact,2 decimals,Y
+24,ARMA(0,3) AIC,Rmd L624,-4779.91,AIC,AIC(arma_03),-4779.91,Y,exact,2 decimals,Y
+25,ARMA(1,0) sigma2,Rmd L672,0.0005974,sigma2,arma_final$sigma2,0.0005974,Y,exact,4 sig fig,Y
+26,ARMA(1,0) AR root,Rmd L758,13.62,modulus,polyroot,13.62,Y,exact,2 decimals,Y
+27,Forecast h=1,Rmd L938,0.002443,log_return,forecast$mean[1],0.002443,Y,exact,6 decimals,Y
+28,Forecast h=2,Rmd L938,0.001474,log_return,forecast$mean[2],0.001474,Y,exact,6 decimals,Y
+29,Forecast h=3,Rmd L938,0.001545,log_return,forecast$mean[3],0.001545,Y,exact,6 decimals,Y
+30,Last observed return,Rmd L938,-0.01076,log_return,tail(sp500_ret 1),-0.01076,Y,exact,5 decimals,Y
+31,Last observed SP500,Rmd L938,5906.94,level,tail(SP500 1),5906.94,Y,exact,2 decimals,Y
+32,Forecast level h=1,Rmd L938,5921.39,level,last*exp(cum),5921.39,Y,exact,2 decimals,Y
+33,Forecast level h=2,Rmd L938,5930.12,level,last*exp(cum),5930.12,Y,exact,2 decimals,Y
+34,Forecast level h=3,Rmd L938,5939.29,level,last*exp(cum),5939.29,Y,exact,2 decimals,Y
+35,VAR data nrow,Rmd L1115,1042,n_obs,var_data,1042,Y,exact,after differencing,Y
+36,VARselect SC,Rmd L1112,1,lag,VARselect SC,1,Y,exact,BIC criterion,Y
+37,VARselect AIC,Rmd L1110,4,lag,VARselect AIC,4,Y,exact,,Y
+38,VARselect HQ,Rmd L1111,2,lag,VARselect HQ,2,Y,exact,,Y
+39,VARselect FPE,Rmd L1110,4,lag,VARselect FPE,4,Y,exact,,Y
+40,VAR SP500 a11,Rmd L1181,-0.073,coef,VAR(1) SP500_ret.l1,-0.0734,Y,±0.001,3-decimal rounding,Y
+41,VAR SP500 a12,Rmd L1181,0.000047,coef,VAR(1) VIX.l1 in SP500 eq,0.000047,Y,exact,,Y
+42,VAR SP500 a13,Rmd L1181,0.0016,coef,VAR(1) US10Y_diff.l1 in SP500 eq,0.001568,Y,±0.001,4-decimal rounding,Y
+43,VAR SP500 R2,Rmd L1181,0.0057,R2,summary VAR,0.0057,Y,exact,4 decimals,Y
+44,VAR VIX a21,Rmd L1183,-108.1,coef,VAR(1) SP500_ret.l1 in VIX eq,-108.0716,Y,±0.1,1-decimal rounding,Y
+45,VAR VIX a22,Rmd L1183,0.933,coef,VAR(1) VIX.l1 in VIX eq,0.9328,Y,±0.001,3-decimal rounding,Y
+46,VAR VIX R2,Rmd L1183,0.947,R2,summary VAR,0.9473,Y,±0.001,3-decimal rounding,Y
+47,VAR VIX c2,Rmd L1183,1.446,intercept,summary VAR,1.4459,Y,±0.001,3-decimal rounding,Y
+48,VAR US10Y a31,Rmd L1185,1.145,coef,VAR(1) SP500_ret.l1 in US10Y_diff eq,1.144926,Y,±0.001,3-decimal rounding,Y
+49,VAR US10Y a32,Rmd L1185,-0.00061,coef,VAR(1) VIX.l1 in US10Y_diff eq,-0.000609,Y,exact,5-decimal rounding,Y
+50,VAR US10Y a33,Rmd L1185,-0.053,coef,VAR(1) US10Y_diff.l1 in US10Y_diff eq,-0.053429,Y,±0.001,3-decimal rounding,Y
+51,VAR US10Y R2,Rmd L1185,0.060,R2,summary VAR,0.0602,Y,±0.001,3-decimal rounding,Y
+52,VAR roots,Rmd L1189,"0.928 0.102 0.019",roots,roots(var_model),"0.927 0.102 0.019",Y,±0.001,rounding,Y
+53,Resid cor SP500-VIX,Rmd L1191,-0.059,cor,cor(residuals),-0.059,Y,exact,3 decimals,Y
+54,Resid cor SP500-Yield,Rmd L1191,-0.061,cor,cor(residuals),-0.061,Y,exact,3 decimals,Y
+55,Resid cor VIX-Yield,Rmd L1191,-0.124,cor,cor(residuals),-0.124,Y,exact,3 decimals,Y
+56,Granger SP500_ret joint F,Rmd L1304,893.56,F-stat,causality(cause=SP500_ret)$Granger,893.556,Y,±0.01,2-decimal rounding; reinterpreted as joint test,Y
+57,Granger VIX joint F,Rmd L1304,1.17,F-stat,causality(cause=VIX)$Granger,1.173,Y,±0.01,2-decimal rounding,Y
+58,Granger US10Y_diff joint F,Rmd L1306,0.90,F-stat,causality(cause=US10Y_diff)$Granger,0.898,Y,±0.01,2-decimal rounding,Y
+59,Johansen K,Rmd L1531,4,lag,VARselect levels AIC,4,Y,exact,,Y
+60,Johansen trace r=0,Rmd L1581,61.14,trace_stat,ca.jo@teststat[3],61.14,Y,exact,2 decimals,Y
+61,Johansen trace r<=1,Rmd L1581,9.12,trace_stat,ca.jo@teststat[2],9.12,Y,exact,2 decimals,Y
+62,Johansen trace r<=2,Rmd L1581,2.00,trace_stat,ca.jo@teststat[1],2.00,Y,exact,2 decimals,Y
+63,Beta VIX,Rmd L1588,-410.59,coef,ca.jo@V normalized,-410.59,Y,exact,2 decimals,Y
+64,Beta US10Y,Rmd L1588,-327.12,coef,ca.jo@V normalized,-327.12,Y,exact,2 decimals,Y
+65,Alpha SP500,Rmd L1597,4.47e-4,coef,ca.jo@W[1],4.47e-4,Y,exact,3 sig fig,Y
+66,Alpha VIX,Rmd L1598,1.17e-4,coef,ca.jo@W[2],1.17e-4,Y,exact,3 sig fig,Y
+67,Alpha US10Y,Rmd L1599,1.43e-6,coef,ca.jo@W[3],1.43e-6,Y,exact,3 sig fig,Y
+68,VECM sample size,Rmd L1670,1041,n_obs,vec2var,1041,Y,exact,after K=4 lags,Y

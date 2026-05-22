@@ -1,0 +1,7 @@
+[WARNING] Deprecated: --highlight-style. Use --syntax-highlighting instead.
+Avis : LaTeX Warning: Label `tab:data_import' multiply defined.
+Avis : LaTeX Warning: Label `tab:build_sp500_returns' multiply defined.
+Avis : LaTeX Warning: Label `tab:arma_selection' multiply defined.
+Avis : LaTeX Warning: Label `tab:var_stationarisation' multiply defined.
+Avis : LaTeX Warning: There were multiply-defined labels.
+Il y a eu 11 avis (utilisez warnings() pour les visionner)

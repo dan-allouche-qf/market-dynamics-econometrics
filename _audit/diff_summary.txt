@@ -1,0 +1,11 @@
+ README.md                     |   26 +-
+ _audit/.gitkeep               |    0
+ _audit/abs_paths.txt          |    0
+ _audit/inventory.md           |   62 +
+ _audit/pdf_text.txt           | 3442 +++++++++++++++++++++++++++++++++++++++++
+ _audit/secrets_trufflehog.txt |    0
+ _audit/verify_numbers.R       |  194 +++
+ _audit/verify_numbers.log     |   92 ++
+ market_dynamics_analysis.Rmd  |  140 +-
+ market_dynamics_analysis.pdf  |  Bin 358335 -> 358479 bytes
+ 10 files changed, 3883 insertions(+), 73 deletions(-)
