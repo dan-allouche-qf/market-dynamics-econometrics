@@ -1,5 +1,7 @@
 # Market Dynamics Econometrics: Interactions Between Implied Volatility, Interest Rates, and Stock Markets
 
+Author: Dan Allouche
+
 ## Overview
 
 This project provides an in-depth econometric analysis of the dynamic interactions between three key financial indicators: the S&P 500 Index, the CBOE Volatility Index (VIX), and the 10-Year US Treasury Yield. Covering two decades of weekly data (2005–2024), the study explores how market sentiment, interest rate regimes, and equity performance co-evolve and influence each other.
@@ -36,15 +38,29 @@ The primary goal of this research is to answer:
 ## Project Structure
 
 - `market_dynamics_analysis.Rmd`: The primary R Markdown file containing the full econometric pipeline, code, and interpretations.
-- `data/`: Directory intended for housing the raw and processed datasets (weekly time series).
+- `market_dynamics_analysis.pdf`: Compiled report (xelatex output of the Rmd).
+- `weekly_raw_values_SP500_VIX_US10Y_2005_2024.csv`: Canonical input data — weekly closing prices for `^GSPC`, `^VIX`, `^TNX` from Yahoo Finance, 2005-01-01 to 2024-12-28, 1044 observations, no missing values.
+- `data/`: Reserved directory for additional datasets.
+
+## Data and Reproducibility
+
+The analysis loads the bundled CSV snapshot when present (default, deterministic). If the snapshot file is missing, the `data_import` chunk falls back to a live Yahoo Finance pull via `tidyquant::tq_get` and writes a fresh snapshot — note that Yahoo Finance occasionally back-revises older closing prices, so live pulls may produce small numerical differences from the values reported in the PDF.
 
 ## Requirements
 
-The analysis is performed in R. To replicate the results, the following packages are required:
+The analysis is performed in R (tested with R 4.5.x). To replicate the results, install the following packages:
 
 ```r
-install.packages(c("tidyquant", "dplyr", "knitr", "kableExtra", "purrr", 
-                   "ggplot2", "scales", "urca", "forecast", "vars", 
-                   "tidyr", "lpirfs"))
+install.packages(c("tidyquant", "dplyr", "knitr", "kableExtra", "purrr",
+                   "ggplot2", "scales", "urca", "forecast", "vars",
+                   "tidyr", "lpirfs", "rmarkdown"))
+```
+
+PDF rendering requires a LaTeX engine (`xelatex`) — TinyTeX is sufficient.
+
+Render:
+
+```r
+rmarkdown::render("market_dynamics_analysis.Rmd")
 ```
 

@@ -94,22 +94,27 @@ library(scales)
 start_date <- "2005-01-01"
 end_date   <- "2024-12-31"
 
-# Download weekly data from Yahoo Finance for each series
-# S&P 500 Index (ticker: ^GSPC)
-sp500 <- tq_get("^GSPC", from = start_date, to = end_date, periodicity = "weekly") |>
-  dplyr::select(date, SP500 = close)
+# Data source: prefer the local snapshot bundled with the repo so the analysis
+# is reproducible offline and pinned to the exact values used in the report.
+# If the snapshot is absent, fall back to a live Yahoo Finance pull via tidyquant
+# and then write the snapshot for future runs.
+snapshot_csv <- "weekly_raw_values_SP500_VIX_US10Y_2005_2024.csv"
 
-# CBOE Volatility Index (ticker: ^VIX)
-vix <- tq_get("^VIX", from = start_date, to = end_date, periodicity = "weekly") |>
-  dplyr::select(date, VIX = close)
-
-# 10-Year US Treasury Yield (ticker: ^TNX)
-us10y <- tq_get("^TNX", from = start_date, to = end_date, periodicity = "weekly") |>
-  dplyr::select(date, US10Y = close)   
-
-# Merge the three series by date to create a unified dataset
-data_weekly_raw <- purrr::reduce(list(sp500, vix, us10y), dplyr::full_join, by = "date") |>
-  dplyr::arrange(date)
+if (file.exists(snapshot_csv)) {
+  data_weekly_raw <- read.csv(snapshot_csv, stringsAsFactors = FALSE) |>
+    dplyr::mutate(date = as.Date(date)) |>
+    dplyr::arrange(date)
+} else {
+  # Live download (Yahoo Finance) when no snapshot is available.
+  sp500 <- tq_get("^GSPC", from = start_date, to = end_date, periodicity = "weekly") |>
+    dplyr::select(date, SP500 = close)
+  vix <- tq_get("^VIX", from = start_date, to = end_date, periodicity = "weekly") |>
+    dplyr::select(date, VIX = close)
+  us10y <- tq_get("^TNX", from = start_date, to = end_date, periodicity = "weekly") |>
+    dplyr::select(date, US10Y = close)
+  data_weekly_raw <- purrr::reduce(list(sp500, vix, us10y), dplyr::full_join, by = "date") |>
+    dplyr::arrange(date)
+}
 
 # Create a summary of key descriptive information
 data_overview <- list(
@@ -154,10 +159,12 @@ The dataset provides a balanced weekly panel from 2005 to 2024 with no missing v
 **Note on seasonal adjustment:** None of the series require seasonal adjustment, as they are financial market indicators rather than macroeconomic aggregates.
 
 ```{r data_export, message=FALSE, warning=FALSE}
-# Export the dataset 
-write.csv(data_weekly_raw,
-          "weekly_raw_values_SP500_VIX_US10Y_2005_2024.csv",
-          row.names = FALSE)
+# Persist the snapshot only when it does not already exist on disk.
+# Avoids silently overwriting the canonical input with a newer Yahoo Finance
+# back-revision when the report is re-rendered.
+if (!file.exists(snapshot_csv)) {
+  write.csv(data_weekly_raw, snapshot_csv, row.names = FALSE)
+}
 ```
 
 ---
@@ -470,7 +477,7 @@ We now identify an appropriate ARMA model for one of the series. We select the *
 
 ## Construction of the Stationary Series
 
-The sequential unit root testing strategy conducted in Question 3 concluded that the S&P 500 index level is integrated of order 1 (I(1)) and corresponds to a DS (Difference Stationary) process without drift. To estimate a valid ARMA model, we must transform the series into a stationary process. We transform the series into the **weekly log-return**, which is the first difference of the logarithm of the index level:
+The sequential unit root testing strategy conducted in the previous section ("Unit Root Testing Strategy and Stationarisation") concluded that the S&P 500 index level is integrated of order 1 (I(1)) and corresponds to a DS (Difference Stationary) process without drift. To estimate a valid ARMA model, we must transform the series into a stationary process. We transform the series into the **weekly log-return**, which is the first difference of the logarithm of the index level:
 
 \[
 r_{t}^{SP500} = \log(SP500_t) - \log(SP500_{t-1}) = \Delta \log(SP500_t).
@@ -703,9 +710,10 @@ residuals_arma <- residuals(arma_final)
 ljung_box <- Box.test(residuals_arma, lag = 10, type = "Ljung-Box")
 
 # --- Test for normality of residuals ---
-# Shapiro-Wilk test: tests the null hypothesis that residuals are normally distributed
-# We limit to 5000 observations due to computational constraints
-shapiro_test <- shapiro.test(residuals_arma[1:5000])
+# Shapiro-Wilk test: tests the null hypothesis that residuals are normally distributed.
+# Note: shapiro.test() requires sample size in [3, 5000]; with ~1043 weekly residuals
+# we are well within range, so the full residual series is used.
+shapiro_test <- shapiro.test(residuals_arma)
 
 # Display test results in a single output
 validation_tests <- data.frame(
@@ -1004,19 +1012,19 @@ This specification allows each variable to depend on its own lagged value and th
 
 ## Construction of the Stationarised Vector
 
-Before estimating the VAR model, we must ensure that all series in the vector $X_t$ are stationary. Based on the sequential unit root testing strategy conducted in Question 3:
+Before estimating the VAR model, we must ensure that all series in the vector $X_t$ are stationary. Based on the sequential unit root testing strategy conducted earlier ("Unit Root Testing Strategy and Stationarisation"):
 
 - **S&P 500**: I(1), DS process without drift → we use weekly log-returns (already computed as the first difference of the logarithm)
 - **VIX**: I(0), stationary → we use the series in levels
 - **US 10-Year Yield**: I(1), DS process without drift → we use first differences
 
-The deterministic component of the VAR (intercept, trend) must be consistent with the conclusions from Question 4, where we found that the S&P 500 returns have a significant intercept in the ARMA(1,0) model. Therefore, we include an intercept term in the VAR specification.
+The deterministic component of the VAR (intercept, trend) must be consistent with the conclusions from the ARMA section above, where we found that the S&P 500 returns have a significant intercept in the ARMA(1,0) model. Therefore, we include an intercept term in the VAR specification.
 
 ```{r var_stationarisation, message=FALSE, warning=FALSE}
 # Load required packages for VAR analysis
 library(vars)
 
-# S&P 500: use log-returns (already computed in Question 4)
+# S&P 500: use log-returns (already computed in the ARMA section above)
 # VIX: use levels (I(0), stationary)
 vix_level <- data_weekly_raw$VIX
 
@@ -1121,7 +1129,7 @@ The VAR(1) specification implies that each variable depends on its own value and
 
 ## VAR Model Estimation
 
-We now estimate the VAR model with the selected lag length. The deterministic component includes a constant term (intercept), which is consistent with our finding in Question 4 that the S&P 500 returns have a significant intercept in the ARMA model. We do not include a trend term, as the stationarised series should not exhibit deterministic trends.
+We now estimate the VAR model with the selected lag length. The deterministic component includes a constant term (intercept), which is consistent with our earlier finding that the S&P 500 returns have a significant intercept in the ARMA model. We do not include a trend term, as the stationarised series should not exhibit deterministic trends.
 
 ```{r var_estimation, message=FALSE, warning=FALSE}
 # Estimate the VAR model with optimal lag length
@@ -1178,7 +1186,7 @@ where \(c_i\) are the intercept terms and \(a_{ij}\) are the coefficients captur
 
 The VAR(1) model estimation reveals distinct dynamic patterns for each variable. The S&P 500 returns equation shows weak predictive power, consistent with market efficiency, while the VIX equation demonstrates strong persistence and sensitivity to equity returns. The yield equation captures moderate interactions with equity markets.
 
-**S&P 500 Returns Equation**: The own-lag coefficient (\(a_{11} = -0.073\), p = 0.018) indicates weak mean-reversion in weekly returns, consistent with the ARMA(1,0) model from Question 4. A 1% return last week predicts a -0.073% return this week, suggesting a slight correction mechanism. Cross-variable effects are not statistically significant: the VIX effect (\(a_{12} = 0.000047\), p = 0.590) and yield effect (\(a_{13} = 0.0016\), p = 0.806) both fail to predict SP500 returns. The intercept (\(c_1 = 0.00078\), p = 0.669) is not significant, though the mean return remains positive. The model's explanatory power is very low (R² = 0.0057), which is typical for equity returns and reflects the difficulty of predicting returns using lagged information, consistent with the efficient market hypothesis.
+**S&P 500 Returns Equation**: The own-lag coefficient (\(a_{11} = -0.073\), p = 0.018) indicates weak mean-reversion in weekly returns, consistent with the ARMA(1,0) model estimated above. A 1% return last week predicts a -0.073% return this week, suggesting a slight correction mechanism. Cross-variable effects are not statistically significant: the VIX effect (\(a_{12} = 0.000047\), p = 0.590) and yield effect (\(a_{13} = 0.0016\), p = 0.806) both fail to predict SP500 returns. The intercept (\(c_1 = 0.00078\), p = 0.669) is not significant, though the mean return remains positive. The model's explanatory power is very low (R² = 0.0057), which is typical for equity returns and reflects the difficulty of predicting returns using lagged information, consistent with the efficient market hypothesis.
 
 **VIX Equation**: This equation exhibits the strongest fit (R² = 0.947), driven primarily by two highly significant effects. The own-lag coefficient (\(a_{22} = 0.933\), p < 0.001) shows **strong persistence** in the VIX index, indicating that volatility levels tend to persist from week to week. This high persistence is characteristic of volatility dynamics and explains why the VIX series, despite being stationary, exhibits slow decay in its autocorrelation function. The SP500 effect (\(a_{21} = -108.1\), p < 0.001) is **highly significant and economically large**: a 1% decrease in SP500 returns last week predicts a 108-point increase in VIX this week, capturing the strong negative relationship between equity returns and volatility. This confirms that equity declines are associated with sharp volatility spikes, a well-documented phenomenon in financial markets. The yield effect (\(a_{23} = 0.685\), p = 0.194) is not statistically significant. The intercept (\(c_2 = 1.446\), p < 0.001) is highly significant, reflecting the long-run average level of the VIX index.
 
@@ -1230,19 +1238,16 @@ where:
 Under the null hypothesis, $F \sim F(p, n-k)$. If $F$ exceeds the critical value, we reject $H_0$ and conclude that $X$ Granger-causes $Y$.
 
 ```{r granger_causality, message=FALSE, warning=FALSE}
-# Perform Granger causality tests for all variable pairs
-# The causality() function from the vars package tests whether one variable
-# Granger-causes another in the context of the estimated VAR model
-
-# Define all causality tests
-# Note: Variable names must match exactly those in var_model
+# Perform joint Granger causality tests for each variable as cause.
+# The causality() function in the vars package tests the joint null
+#   H0: variable X does not Granger-cause the remaining variables in the system.
+# With 3 variables, this gives us 3 distinct joint F-tests (one per "cause"),
+# each restricting all lagged coefficients of the cause variable in the
+# equations of the *other* variables simultaneously.
 causality_tests <- list(
-  list(cause = "SP500_ret", name = "SP500_ret → VIX"),
-  list(cause = "VIX", name = "VIX → SP500_ret"),
-  list(cause = "SP500_ret", name = "SP500_ret → US10Y_diff"),
-  list(cause = "US10Y_diff", name = "US10Y_diff → SP500_ret"),
-  list(cause = "VIX", name = "VIX → US10Y_diff"),
-  list(cause = "US10Y_diff", name = "US10Y_diff → VIX")
+  list(cause = "SP500_ret",  name = "SP500_ret  -> (VIX, US10Y_diff)"),
+  list(cause = "VIX",        name = "VIX        -> (SP500_ret, US10Y_diff)"),
+  list(cause = "US10Y_diff", name = "US10Y_diff -> (SP500_ret, VIX)")
 )
 
 # Perform all tests and collect results
@@ -1286,12 +1291,12 @@ causality_results_formatted <- causality_results |>
                               paste0("**", Significant, "**"), 
                               Significant))
 
-knitr::kable(causality_results_formatted, 
-             col.names = c("Causality Direction", "F-Statistic", "P-Value", "Significant (5%)"),
-             row.names = FALSE, 
+knitr::kable(causality_results_formatted,
+             col.names = c("Joint Granger Causality (cause -> rest)", "F-Statistic", "P-Value", "Significant (5%)"),
+             row.names = FALSE,
              digits = 4,
              booktabs = TRUE, linesep = "",
-             caption = "Granger Causality Test Results") |>
+             caption = "Joint Granger Causality Test Results (cause variable vs. rest of the system)") |>
   kable_styling(latex_options = c("striped", "hold_position"), 
                 font_size = 9, full_width = FALSE) |>
   row_spec(which(causality_results$Significant == "Yes"), bold = TRUE)
@@ -1301,11 +1306,11 @@ knitr::kable(causality_results_formatted,
 
 The Granger causality tests provide formal statistical evidence on the direction of predictive relationships in the VAR system. The results reveal a clear hierarchical structure in information flow, which we interpret in the context of economic theory and the VAR coefficient estimates.
 
-The tests identify two highly significant unidirectional causal relationships, both originating from SP500 returns. First, SP500 returns strongly Granger-cause VIX levels (F = 893.56, p < 0.001), indicating that equity market movements contain significant predictive information for volatility. This relationship is consistent with the large and highly significant coefficient (-108.1) found in the VAR estimation for the VIX equation. The extremely high F-statistic confirms a very strong predictive relationship, where equity declines signal increased uncertainty and risk aversion, manifesting in higher implied volatility. Importantly, this relationship is unidirectional: VIX does not Granger-cause SP500 returns (F = 1.17, p = 0.309), suggesting that volatility is primarily a consequence of equity movements rather than a driver. This supports the view of VIX as a "fear gauge" that reacts to equity market conditions.
+The joint Granger causality test shows that SP500 returns strongly Granger-cause the rest of the system jointly (F = 893.56, p < 0.001). Inspecting the VAR(1) coefficients identifies which equations carry this effect. In the VIX equation, the lagged-SP500 coefficient is large and highly significant (-108.1, p < 0.001), so equity market movements contain significant predictive information for volatility: equity declines signal increased uncertainty and risk aversion, manifesting in higher implied volatility. In the yield equation, the lagged-SP500 coefficient is also highly significant (+1.145, p < 0.001), so equity returns lead interest rate movements. The conclusion is unidirectional: the joint tests for VIX (F = 1.17, p = 0.309) and US10Y_diff (F = 0.90, p = 0.408) fail to reject the null that they Granger-cause the rest of the system, and the corresponding VAR coefficients on lagged VIX and lagged US10Y_diff in the SP500 equation are not significant (p = 0.590 and p = 0.806). Volatility is therefore primarily a consequence of equity movements rather than a driver, supporting the view of VIX as a "fear gauge" that reacts to equity market conditions.
 
-Second, SP500 returns strongly Granger-cause US 10-Year yield changes (F = 893.56, p < 0.001), indicating that equity markets lead interest rate movements. This suggests that equity prices incorporate forward-looking information about economic conditions and monetary policy expectations. Positive equity returns may signal improved economic outlook, leading to expectations of higher interest rates, or vice versa for negative returns. The strong causality is consistent with the highly significant positive coefficient (1.145) found in the VAR estimation for the yield equation. This relationship is also unidirectional: yield changes do not Granger-cause SP500 returns (F = 0.90, p = 0.408), suggesting that equity markets are more forward-looking than bond markets in this context.
+In addition, neither the joint test for VIX nor for US10Y_diff is significant, and the off-diagonal VAR coefficients linking VIX and yield changes (VIX in the yield equation: -0.00061, p = 0.143; US10Y_diff in the VIX equation: +0.685, p = 0.194) are not significant. There is therefore no evidence of a direct lagged predictive link between VIX and yield changes — any apparent association operates through equity markets.
 
-In contrast, there is no direct predictive relationship between VIX and yield changes. Neither VIX Granger-causes yield changes (F = 1.17, p = 0.309) nor do yield changes Granger-cause VIX (F = 0.90, p = 0.408). This suggests that the relationship between VIX and yields operates indirectly through equity markets, rather than through direct channels. Once we control for equity market movements, VIX and yield changes are largely independent.
+In contrast, there is no direct predictive relationship between VIX and yield changes. The joint Granger tests for VIX (F = 1.17, p = 0.309) and for US10Y_diff (F = 0.90, p = 0.408) do not reject the null, and the corresponding off-diagonal VAR coefficients (VIX in the yield equation: -0.00061, p = 0.143; US10Y_diff in the VIX equation: +0.685, p = 0.194) are not significant. The relationship between VIX and yields therefore operates indirectly through equity markets, rather than through direct lagged channels.
 
 ### Overall Pattern: SP500 as the Central Hub
 
@@ -1323,7 +1328,7 @@ This structure has three key characteristics. First, SP500 returns are the prima
 
 ### Consistency with VAR Estimates and Economic Implications
 
-The causality results are fully consistent with the VAR coefficient estimates. The strong SP500 → VIX causality matches the highly significant coefficient (-108.1) in the VIX equation, while the strong SP500 → Yield causality matches the highly significant coefficient (1.145) in the yield equation. The absence of reverse causality is consistent with the non-significant coefficients in the SP500 equation, where VIX and yield effects are not statistically significant.
+The joint causality results are fully consistent with the VAR coefficient estimates. The strong joint causality from SP500 returns is driven by the highly significant lagged-SP500 coefficient in the VIX equation (-108.1) and the highly significant lagged-SP500 coefficient in the yield equation (+1.145). The absence of reverse joint causality is consistent with the non-significant lagged coefficients of VIX and US10Y_diff in the SP500 equation.
 
 These findings have important implications for understanding financial market dynamics. Equity markets appear to be informationally efficient, with SP500 returns incorporating information that subsequently affects volatility and interest rates, consistent with the efficient market hypothesis. Volatility is reactive rather than proactive: VIX levels are primarily a response to equity movements rather than an independent driver, supporting the view of volatility as a "fear gauge" that reflects market sentiment. Finally, interest rates follow equity markets, with yield changes responding to equity movements, suggesting that bond markets adjust to information already reflected in equity prices.
 
@@ -1497,7 +1502,7 @@ The error correction term $\beta'X_{t-1}$ ensures that deviations from the long-
 
 ## Prerequisites for Cointegration Testing
 
-From the unit root tests conducted in Question 3, we found:
+From the unit root tests conducted earlier, we found:
 - **SP500**: I(1) - confirmed by both ADF and KPSS tests
 - **VIX**: I(0) or near-stationary - ADF suggests I(0), KPSS suggests weak non-stationarity
 - **US10Y**: I(1) - confirmed by both ADF and KPSS tests
@@ -1605,7 +1610,7 @@ The detection of one cointegrating relationship suggests that despite the non-st
 
 ### Implications for Modeling
 
-Since cointegration is detected, the **VAR(1) model in differences estimated in Question 6 is misspecified** because it ignores the long-run equilibrium relationship. A **Vector Error Correction Model (VECM)** should be estimated instead to properly capture both:
+Since cointegration is detected, the **VAR(1) model in differences estimated in the previous section is misspecified** because it ignores the long-run equilibrium relationship. A **Vector Error Correction Model (VECM)** should be estimated instead to properly capture both:
 1. **Short-run dynamics** (through the differenced terms)
 2. **Long-run equilibrium adjustments** (through the error correction term)
 
@@ -1626,28 +1631,27 @@ where:
 - \(p-1\) lags in differences (where \(p\) is the lag length of the VAR in levels, determined above)
 
 ```{r vecm_estimation, message=FALSE, warning=FALSE}
-# Determine the number of cointegrating relationships based on test results
-# In ca.jo output: teststat[1] = r<=2, teststat[2] = r<=1, teststat[3] = r=0
-# cval columns: [1] = 10%, [2] = 5%, [3] = 1%
-# Extract test statistics and critical values (5% level)
+# Determine the number of cointegrating relationships based on test results.
+# In the ca.jo() trace output, the test statistics are stored in *reverse* order:
+#   teststat[1] = test for "r <= k-1", ..., teststat[k] = test for "r = 0".
+# With k = 3 variables: teststat[1] = "r <= 2", teststat[2] = "r <= 1", teststat[3] = "r = 0".
+# cval columns: [, 1] = 10%, [, 2] = 5%, [, 3] = 1%.
 n_vars <- length(johansen_test@teststat)
-test_results <- map_dfr(1:3, function(i) {
-  idx <- n_vars - i + 1
-  data.frame(
-    Test = c("r <= 2", "r <= 1", "r = 0")[i],
-    TestStat = as.numeric(johansen_test@teststat[idx]),
-    CriticalValue = as.numeric(johansen_test@cval[idx, 2])
-  )
-})
+test_results <- data.frame(
+  Test          = c("r = 0", "r <= 1", "r <= 2"),
+  TestStat      = as.numeric(johansen_test@teststat[n_vars:1]),
+  CriticalValue = as.numeric(johansen_test@cval[n_vars:1, 2])
+)
 
-# Determine cointegrating rank
+# Determine cointegrating rank: sequentially count hypotheses we reject
+# (each rejection adds one cointegrating relation).
 r <- sum(test_results$TestStat > test_results$CriticalValue)
 
-# Display test statistics and critical values
+# Display test statistics and critical values (label matches value).
 cat("Test Statistics and Critical Values (5%):\n")
-cat("r = 0:  teststat =", round(test_results$TestStat[3], 2), ", cval =", round(test_results$CriticalValue[3], 2), "\n")
+cat("r = 0:  teststat =", round(test_results$TestStat[1], 2), ", cval =", round(test_results$CriticalValue[1], 2), "\n")
 cat("r <= 1: teststat =", round(test_results$TestStat[2], 2), ", cval =", round(test_results$CriticalValue[2], 2), "\n")
-cat("r <= 2: teststat =", round(test_results$TestStat[1], 2), ", cval =", round(test_results$CriticalValue[1], 2), "\n\n")
+cat("r <= 2: teststat =", round(test_results$TestStat[3], 2), ", cval =", round(test_results$CriticalValue[3], 2), "\n\n")
 
 # Estimate VECM if cointegration is detected
 if (r > 0) {
@@ -1683,7 +1687,7 @@ Based on the Johansen cointegration test, we conclude that:
 
 1. **Cointegration is present**: One cointegrating relationship (r = 1) exists among SP500, VIX, and US10Y at the 5% significance level.
 
-2. **VAR(1) model limitation**: The VAR(1) model in differences estimated in Question 6 is **misspecified** because it ignores the long-run equilibrium relationship between the variables.
+2. **VAR(1) model limitation**: The VAR(1) model in differences estimated earlier is **misspecified** because it ignores the long-run equilibrium relationship between the variables.
 
 3. **VECM as alternative**: The VECM model provides a more appropriate framework by simultaneously modeling:
    - Long-run equilibrium adjustments (error correction mechanism)
